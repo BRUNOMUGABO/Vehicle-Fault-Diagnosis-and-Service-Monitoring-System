@@ -1,0 +1,46 @@
+services:
+  web:
+    build: .
+    ports:
+      - "127.0.0.1:8080:80"
+    environment:
+      DB_HOST: db
+      DB_NAME: ${MYSQL_DATABASE:-vfdsms}
+      DB_USER: ${MYSQL_USER:-vfdsms_user}
+      DB_PASS: ${MYSQL_PASSWORD:-vfdsms_local_password}
+      SITE_URL: ${SITE_URL:-http://localhost:8080/Vehicles%20Fault%20Diagnosis%20and%20Service%20Monitoring%20System}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-vfdsms_local_root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-vfdsms}
+      MYSQL_USER: ${MYSQL_USER:-vfdsms_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-vfdsms_local_password}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    ports:
+      - "127.0.0.1:8081:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  db_data:
